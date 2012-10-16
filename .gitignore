@@ -1,0 +1,13 @@
+# Ignore all dotfiles...
+.*
+*.swp
+*~
+# except for .gitignore
+!.gitignore
+
+# Ignore IDE files
+obj
+bin
+*.depend
+*.layout
+*.cbp
