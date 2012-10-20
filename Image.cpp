@@ -105,7 +105,7 @@ void Image::afficheOffsets() {
 }
 
 void Image::afficheOffsetsPixels(int taillePatch) {
-    cout << "Offsets de l'image par pixel :" << endl;
+    cout << "Offsets de l'image par pixel (ne pas tenir compte des 'fois') :" << endl;
 
     for (int i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
         for (int j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
