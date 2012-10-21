@@ -1,8 +1,12 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include <windows.h>
+#include <GL/glut.h>
+#include <GL/gl.h>
 
 #include "Image.hpp"
 #include "Patch.hpp"
+#include "Rendu3D.hpp"
 
 #include <iostream>
 
@@ -115,6 +119,8 @@ void testBlancNoirPetit() {
         im.afficheOffsets();
         im.afficheOffsetsPixels(2);
 
+
+        Rendu3D renduOffsets(&im);
     }
     catch (string const& e) {
         cout << "Exception : " << e << endl;
@@ -139,6 +145,7 @@ int main( int argc, char** argv )
     createTrackbar("contrast", "image", &_contrast, 200, updateBrightnessContrast);
 
     updateBrightnessContrast(0, 0);*/
+    glutInit(&argc, (char **)argv);
 
     testBlancNoirPetit();
 

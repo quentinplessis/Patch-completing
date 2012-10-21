@@ -7,6 +7,10 @@ class Offset {
         Offset(int x, int y);
         bool augmenteSiEgal(int x, int y);
         void affiche() const;
+        void afficheTriplet() const;
+        int getX() const;
+        int getY() const;
+        int getN() const;
 
     private:
         int x, y;

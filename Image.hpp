@@ -19,6 +19,8 @@ class Image {
         void calculeOffsets(int taillePatch, int tau);
         void afficheOffsets();
         void afficheOffsetsPixels(int taillePatch);
+        std::vector<Offset> getOffsets() const;
+        int getTaille() const;
 
     private:
         cv::Mat pixels;

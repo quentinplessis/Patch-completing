@@ -100,7 +100,7 @@ void Image::afficheOffsets() {
     vector<Offset>::iterator i;
     // On parcourt tout le tableau des offsets
     for (i = offsets.begin() ; i != offsets.end() ; ++i) {
-        i->affiche();
+        i->afficheTriplet();
     }
 }
 
@@ -113,6 +113,14 @@ void Image::afficheOffsetsPixels(int taillePatch) {
             tableauOffsetsPixels[i][j].affiche();
         }
     }
+}
+
+int Image::getTaille() const {
+    return tailleX;
+}
+
+std::vector<Offset> Image::getOffsets() const {
+    return offsets;
 }
 
 
