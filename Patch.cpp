@@ -66,7 +66,7 @@ int Patch::getPosY() const {
 
 // Calcule la distance (au carré) entre les deux patchs pour la norme 2,
 // pour des patchs de même taille (et on suppose qu'ils sont sur la même image)
-long Patch::difference(const Patch patch) const {
+long Patch::difference(const Patch& patch) const {
     if (tailleX != patch.getTailleX() || tailleY != patch.getTailleY())
         throw string("Les patchs n'ont pas la même taille");
 

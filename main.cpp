@@ -69,7 +69,7 @@ void testBlancNoirPetit() {
         //im.afficheOffsetsPixels(2);
 
 
-        Rendu3D renduOffsets(&im);
+        Rendu3D renduOffsets(&im, "Rendu");
     }
     catch (string const& e) {
         cout << "Exception : " << e << endl;
@@ -83,7 +83,7 @@ void testBlancNoir() {
 
     try {
         // Chargement et affichage de l'image ainsi que de ses pixels
-        Image im("blancnoir.jpg", "masqueblancnoir.jpg");
+        Image im("blancnoir2.jpg", "masqueblancnoir2.jpg");
         //Image im("blancnoirpetit.jpg");
         //im.affichePixels();
         im.afficheImage("image"); // on affiche l'image dans la fenêtre "image"
@@ -91,10 +91,13 @@ void testBlancNoir() {
 
         // Calcul et affichage des offsets
         im.calculeOffsets(8, 0);
-       // im.afficheOffsets();
+        //Rendu3D renduOffsets(&im, "Tous les offsets");
+        im.selectionneOffsets(60);
+        im.afficheOffsets();
+        Rendu3D renduOffsetsTries(&im, "K plus grands offsets");
+        //im.calcule2(2, 0);
+        //im.afficheOffsets();
         //im.afficheOffsetsPixels(2);
-
-        //Rendu3D renduOffsets(&im);
     }
     catch (string const& e) {
         cout << "Exception : " << e << endl;

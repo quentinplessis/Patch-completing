@@ -27,8 +27,9 @@ bool Offset::augmenteSiEgal(int x, int y) {
 }
 
 void Offset::affiche() const {
-    cout << "(" << x << "," << y << ") : " << nombre << " fois" << endl;
+    cout << "(" << x << "," << y << ")";
 }
+
 
 void Offset::afficheTriplet() const {
     cout << "" << x << "\t" << y << "\t" << nombre << "" << endl;

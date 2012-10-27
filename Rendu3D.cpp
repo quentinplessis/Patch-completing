@@ -5,12 +5,12 @@ using namespace std;
 
 Rendu3D* g_instance;
 
-Rendu3D::Rendu3D(Image* img) {
+Rendu3D::Rendu3D(Image* img, const char* nomFenetre) {
     image = img;
     sideRange = image->getTaille();
 
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutCreateWindow("First Program");
+    glutCreateWindow(nomFenetre);
 
     setupCallbackRendu();
     setupCallbackTaille();

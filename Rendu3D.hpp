@@ -1,6 +1,7 @@
 #ifndef RENDU3D_HPP_INCLUDED
 #define RENDU3D_HPP_INCLUDED
 
+#include <string>
 #include <windows.h>
 #include <GL/glut.h>
 #include <GL/gl.h>
@@ -9,7 +10,7 @@
 
 class Rendu3D {
     public:
-        Rendu3D(Image* img);
+        Rendu3D(Image* img, const char* nomFenetre);
         void rendu();
         void changeTaille(GLsizei w, GLsizei h);
 

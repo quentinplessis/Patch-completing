@@ -17,7 +17,7 @@ class Patch {
         int getPosX() const;
         int getPosY() const;
 
-        long difference(const Patch patch) const;
+        long difference(const Patch& patch) const;
         bool estValide();
 
     private:

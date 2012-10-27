@@ -21,10 +21,12 @@ class Image {
 
         Offset ajouterOffset(int x, int y);
         void calculeOffsets(int taillePatch, int tau);
+        void calcule2(int taillePatch, int tau);
         void afficheOffsets();
         void afficheOffsetsPixels(int taillePatch);
         std::vector<Offset> getOffsets() const;
         int getTaille() const;
+        void selectionneOffsets(int K);
 
     private:
         cv::Mat pixels;
@@ -35,5 +37,6 @@ class Image {
 
         Offset** tableauOffsetsPixels;
 };
+
 
 #endif // IMAGE_HPP_INCLUDED
