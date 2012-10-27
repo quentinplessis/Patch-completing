@@ -80,6 +80,7 @@ void testBlancNoir() {
     // On définit une fenêtre
     namedWindow("image", 0);
     namedWindow("masque", 0);
+    namedWindow("resultat", 0);
 
     try {
         // Chargement et affichage de l'image ainsi que de ses pixels
@@ -94,10 +95,12 @@ void testBlancNoir() {
         //Rendu3D renduOffsets(&im, "Tous les offsets");
         im.selectionneOffsets(60);
         im.afficheOffsets();
-        Rendu3D renduOffsetsTries(&im, "K plus grands offsets");
         //im.calcule2(2, 0);
         //im.afficheOffsets();
         //im.afficheOffsetsPixels(2);
+        im.complete();
+        im.afficheResultat("resultat");
+        Rendu3D renduOffsetsTries(&im, "K plus grands offsets");
     }
     catch (string const& e) {
         cout << "Exception : " << e << endl;

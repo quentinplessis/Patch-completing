@@ -141,7 +141,7 @@ void Image::calculeOffsets(int taillePatch, int tau) {
                 }
             }
             if (!patch1Valide) {
-                tableauOffsetsPixels[i][j] = Offset();
+               // tableauOffsetsPixels[i][j] = Offset();
                 continue;
             }
 
@@ -205,6 +205,45 @@ void Image::selectionneOffsets(int K) {
     offsets.resize(K);
 }
 
+Mat Image::complete() {
+    resultat = pixels;
+
+    int i, j, x, y;
+    int valeur, nombre;
+    vector<Offset>::iterator k;
+    char aux;
+
+    for (i = 0 ; i < tailleY ; i++) {
+        for (j = 0 ; j < tailleX ; j++) {
+            if (masque.ptr<uchar>(i)[j] < 126) {
+                valeur = 0;
+                nombre = 0;
+                // On parcourt tout le tableau des offsets
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) {
+                    x = j + k->getX();
+                    y = i + k->getY();
+                    if (y >=0 && y < tailleY && x >= 0 && x < tailleX) {
+                        if (masque.ptr<uchar>(y)[x] > 126) {
+                            valeur += pixels.ptr<uchar>(y)[x];
+                            nombre++;
+                        }
+                    }
+                }
+                if (nombre > 0)
+                    resultat.ptr<uchar>(i)[j] = (char) (valeur / nombre);
+            }
+        }
+    }
+
+    cout << "salut" << (int) resultat.ptr<uchar>(0)[0] << endl;
+
+    return resultat;
+}
+
+void Image::afficheResultat(const string& nomFenetre) const {
+    imshow(nomFenetre, resultat);
+}
+
 void Image::calcule2(int taillePatch, int tau) {
     Patch p1(taillePatch, pixels, masque), p2(taillePatch, pixels, masque);
     long diffMin, diff;
@@ -241,10 +280,11 @@ void Image::calcule2(int taillePatch, int tau) {
                         }
                     }
                 }
-                tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
+                //tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
+                ajouterOffset(x, y);
             }
             else {
-                tableauOffsetsPixels[i][j] = Offset();
+                //tableauOffsetsPixels[i][j] = Offset();
             }
         }
         endTime = clock();

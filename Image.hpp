@@ -27,10 +27,13 @@ class Image {
         std::vector<Offset> getOffsets() const;
         int getTaille() const;
         void selectionneOffsets(int K);
+        cv::Mat complete();
+        void afficheResultat(const std::string& nomFenetre) const;
 
     private:
         cv::Mat pixels;
         cv::Mat masque;
+        cv::Mat resultat;
         bool possedeMasque;
         int tailleX, tailleY;
         std::vector<Offset> offsets;
