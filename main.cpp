@@ -84,7 +84,7 @@ void testBlancNoir() {
 
     try {
         // Chargement et affichage de l'image ainsi que de ses pixels
-        Image im("blancnoir2.jpg", "masqueblancnoir2.jpg");
+        Image im("colonnes.jpg", "masquecols.jpg");
         //Image im("blancnoirpetit.jpg");
         //im.affichePixels();
         im.afficheImage("image"); // on affiche l'image dans la fenêtre "image"
