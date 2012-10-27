@@ -14,13 +14,33 @@ Image::Image(const string& cheminFichier) {
     tailleX = pixels.cols;
     tailleY = pixels.rows;
 
-    //offsets.clear();
+    possedeMasque = false;
 
     tableauOffsetsPixels = new Offset*[tailleY];
     for (int i = 0 ; i < tailleY ; i++) {
         tableauOffsetsPixels[i] = new Offset[tailleX];
     }
 }
+
+Image::Image(const string& cheminFichier, const string& cheminMasque) {
+    pixels = imread(cheminFichier, 0); // charge l'image en niveaux de gris
+    if (pixels.empty())
+        throw string("Image vide");
+
+    tailleX = pixels.cols;
+    tailleY = pixels.rows;
+
+    masque = imread(cheminMasque, 0);
+    if (masque.cols != tailleX || masque.rows != tailleY)
+        throw string("Le masque n'est pas de la même taille que l'image");
+    possedeMasque = true;
+
+    tableauOffsetsPixels = new Offset*[tailleY];
+    for (int i = 0 ; i < tailleY ; i++) {
+        tableauOffsetsPixels[i] = new Offset[tailleX];
+    }
+}
+
 
 Image::~Image() {
     for (int i = 0 ; i < tailleY ; i++) {
@@ -29,17 +49,35 @@ Image::~Image() {
     delete(tableauOffsetsPixels);
 }
 
+void Image::setMasque(const string& cheminFichier) {
+    masque = imread(cheminFichier, 0);
+    if (masque.cols != tailleX || masque.rows != tailleY)
+        throw string("Le masque n'est pas de la même taille que l'image");
+    possedeMasque = true;
+}
+
 void Image::affichePixels() const {
     cout << "Taille Image : " << tailleX << "x" << tailleY << endl;
     cout << "Pixels = " << endl << pixels << endl << endl;
+    if (possedeMasque)
+        cout << "Masque = " << endl << masque << endl << endl;
 }
 
 void Image::afficheImage(const std::string& nomFenetre) const {
     imshow(nomFenetre, pixels);
 }
 
+void Image::afficheMasque(const std::string& nomFenetre) const {
+    imshow(nomFenetre, masque);
+}
+
 const Mat& Image::getPixels() const {
     const Mat& ref = pixels;
+    return ref;
+}
+
+const Mat& Image::getMasque() const {
+    const Mat& ref = masque;
     return ref;
 }
 
@@ -62,7 +100,7 @@ Offset Image::ajouterOffset(int x, int y) {
 
 
 void Image::calculeOffsets(int taillePatch, int tau) {
-    Patch p1(taillePatch, pixels), p2(taillePatch, pixels);
+    Patch p1(taillePatch, pixels, masque), p2(taillePatch, pixels, masque);
     long diffMin, diff;
     int distCarre;
     int x = 0, y = 0; // composantes de l'offset à trouver pour chaque pixel
@@ -72,25 +110,32 @@ void Image::calculeOffsets(int taillePatch, int tau) {
     for (i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
         for (j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
             p1.setPosition(j, i);
-            diffMin = -1;
-            x = 0;
-            y = 0;
+            if (!possedeMasque || p1.estValide()) { // le patch p1 est entièrement contenu dans la zone connue de l'image
+                diffMin = -1;
+                x = 0;
+                y = 0;
 
-            for (k = 0 ; k < tailleY - taillePatch + 1 ; k++) {
-                for (l = 0 ; l < tailleX - taillePatch + 1; l++) {
-                    distCarre = (i-k)*(i-k)+(j-l)*(j-l);
-                    if (distCarre > tau*tau) {
+                for (k = 0 ; k < tailleY - taillePatch + 1 ; k++) {
+                    for (l = 0 ; l < tailleX - taillePatch + 1; l++) {
                         p2.setPosition(l, k);
-                        diff = p1.difference(p2);
-                        if (diffMin == -1 || diff < diffMin) {
-                            diffMin = diff;
-                            y = k-i;
-                            x = l-j;
+                        if (!possedeMasque || p2.estValide()) {
+                            distCarre = (i-k)*(i-k)+(j-l)*(j-l);
+                            if (distCarre > tau*tau) {
+                                diff = p1.difference(p2);
+                                if (diffMin == -1 || diff < diffMin) {
+                                    diffMin = diff;
+                                    y = k-i;
+                                    x = l-j;
+                                }
+                            }
                         }
                     }
                 }
+                tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
             }
-            tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
+            else {
+                tableauOffsetsPixels[i][j] = Offset();
+            }
         }
     }
 }

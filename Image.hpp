@@ -10,10 +10,14 @@
 class Image {
     public:
         Image(const std::string& cheminFichier);
+        Image(const std::string& cheminFichier, const std::string& cheminMasque);
         ~Image();
         void affichePixels() const;
         void afficheImage(const std::string& nomFenetre) const;
+        void afficheMasque(const std::string& nomFenetre) const;
         const cv::Mat& getPixels() const;
+        const cv::Mat& getMasque() const;
+        void setMasque(const std::string& cheminFichier);
 
         Offset ajouterOffset(int x, int y);
         void calculeOffsets(int taillePatch, int tau);
@@ -24,6 +28,8 @@ class Image {
 
     private:
         cv::Mat pixels;
+        cv::Mat masque;
+        bool possedeMasque;
         int tailleX, tailleY;
         std::vector<Offset> offsets;
 

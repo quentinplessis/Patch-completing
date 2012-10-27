@@ -28,11 +28,9 @@ void Rendu3D::changeTaille(GLsizei w, GLsizei h) {
 }
 
 void Rendu3D::rendu() {
-    GLfloat ang, x, y, z = -50;
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
-    glRotatef(50,1,0,0); // 70
+    glRotatef(70,1,0,0); // 70
     glRotatef(-15, 0, 0, 1); // -10
     repere();
 

@@ -18,12 +18,13 @@ Patch::Patch(int posX, int posY, int tailleX, int tailleY) {
     this->tailleY = tailleY;
 }
 
-Patch::Patch(int taille, const Mat& pixels) {
+Patch::Patch(int taille, const Mat& pixels, const Mat& masque) {
     posX = 0;
     posY = 0;
     this->tailleX = taille;
     this->tailleY = taille;
     this->pixels = pixels;
+    this->masque = masque;
 }
 
 void Patch::setPosition(int posX, int posY) {
@@ -85,6 +86,21 @@ long Patch::difference(const Patch patch) const {
     }
 
     return res;
+}
+
+// Renvoie true ssi le pixel (x,y) est dans la zone connue de l'image
+bool Patch::estConnu(int x, int y) {
+    return ((int) masque.ptr<uchar>(y)[x]) > 126;
+}
+
+bool Patch::estValide() {
+    for (int i = 0 ; i < tailleY ; i++) {
+        for (int j = 0 ; j < tailleX ; j++) {
+            if (!estConnu(posY + j, posX + i))
+                return false;
+        }
+    }
+    return true;
 }
 
 
