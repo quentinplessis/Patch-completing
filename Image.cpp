@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "Image.hpp"
 #include "Patch.hpp"
+#include "gco-v3.0/GCoptimization.h"
 
 using namespace std;
 using namespace cv;
@@ -222,7 +223,7 @@ Mat Image::complete() {
                 for (k = offsets.begin() ; k != offsets.end() ; ++k) {
                     x = j + k->getX();
                     y = i + k->getY();
-                    if (y >=0 && y < tailleY && x >= 0 && x < tailleX) {
+                    if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                         if (masque.ptr<uchar>(y)[x] > 126) {
                             valeur += pixels.ptr<uchar>(y)[x];
                             nombre++;
@@ -231,6 +232,8 @@ Mat Image::complete() {
                 }
                 if (nombre > 0)
                     resultat.ptr<uchar>(i)[j] = (char) (valeur / nombre);
+                else
+                    resultat.ptr<uchar>(i)[j] = 0;
             }
         }
     }
@@ -238,6 +241,178 @@ Mat Image::complete() {
     cout << "salut" << (int) resultat.ptr<uchar>(0)[0] << endl;
 
     return resultat;
+}
+
+void Image::completeKolmogorov() {
+    int i, j;
+    int nombrePixelsMasque = 0;
+    resultat = pixels;
+
+    for (i = 0 ; i < tailleY ; i++) {
+        for (j = 0 ; j < tailleX ; j++) {
+            if (masque.ptr<uchar>(i)[j] < 126)
+                nombrePixelsMasque++;
+        }
+    }
+    int* result = GeneralGraph_DArraySArraySpatVarying(nombrePixelsMasque);
+    int x = 0, y = 0, k = 0;
+    Offset aux;
+    for (i = 0 ; i < tailleY ; i++) {
+        for (j = 0 ; j < tailleX ; j++) {
+            if (masque.ptr<uchar>(i)[j] < 126) {
+
+                if (result[k] >= 0 && result[k] < offsets.size()) {
+                    aux = offsets.at(result[k]);
+                    x = j + aux.getX();
+                    y = i + aux.getY();
+                    if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                        if (masque.ptr<uchar>(y)[x] > 126) {
+                            resultat.ptr<uchar>(i)[j] = pixels.ptr<uchar>(y)[x];
+                        }
+                        else
+                            resultat.ptr<uchar>(i)[j] = 0;
+                    }
+                    else
+                        resultat.ptr<uchar>(i)[j] = 0;
+                }
+                else {
+                    resultat.ptr<uchar>(i)[j] = 0;
+                    cout << "choix " << k << " : " << (int) result[k] << endl;
+                }
+                k++;
+            }
+        }
+    }
+}
+
+int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
+    int nombreLabels = offsets.size();
+	int *result = new int[nombrePixels];   // stores result of optimization
+	int *traduction = new int[nombrePixels];
+
+	int i, j, x, y;
+	vector<Offset>::iterator k;
+
+	// first set up the array for data costs
+	int *data = new int[nombrePixels*nombreLabels];
+	int pixel = 0;
+	for (i = 0 ; i < tailleY ; i++) {
+        for (j = 0 ; j < tailleX ; j++) {
+            if (masque.ptr<uchar>(i)[j] < 126) {
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) {
+                    x = j + k->getX();
+                    y = i + k->getY();
+                    if (y >= 0 && y < tailleY && x >= 0 && x < tailleX && masque.ptr<uchar>(y)[x] > 126)
+                        data[pixel] = 0;
+                    else
+                        data[pixel] = 1000;
+                    pixel++;
+                }
+            }
+        }
+    }
+	/*for ( int i = 0; i < num_pixels; i++ )
+		for (int l = 0; l < num_labels; l++ )
+			if (i < 25 ){
+				if(  l == 0 ) data[i*num_labels+l] = 0;
+				else data[i*num_labels+l] = 10;
+			}
+			else {
+				if(  l == 5 ) data[i*num_labels+l] = 0;
+				else data[i*num_labels+l] = 10;
+			}*/
+
+	// next set up the array for smooth costs
+	int *smooth = new int[nombreLabels*nombreLabels];
+	for ( int l1 = 0; l1 < nombreLabels; l1++ )
+		for (int l2 = 0; l2 < nombreLabels; l2++ )
+			smooth[l1+l2*nombreLabels] = (l1-l2)*(l1-l2) <= 4  ? (l1-l2)*(l1-l2):4;
+
+
+	try{
+		GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph(nombrePixels, nombreLabels);
+		gc->setDataCost(data);
+		gc->setSmoothCost(smooth);
+
+		// now set up a grid neighborhood system
+		pixel = 0;
+		int *voisins = new int[tailleX];
+		bool precedentEstVoisin = false;
+        for (i = 0 ; i < tailleY ; i++) {
+		    precedentEstVoisin = false;
+            for (j = 0 ; j < tailleX ; j++) {
+                if (masque.ptr<uchar>(i)[j] < 126) {
+                    if (precedentEstVoisin)
+                        gc->setNeighbors(pixel-1, pixel, 1);
+                    precedentEstVoisin = true;
+
+                    if (i != 0) {
+                        if (voisins[j] != -1)
+                        gc->setNeighbors(voisins[j], pixel, 1);
+                    }
+                    voisins[j] = pixel;
+                    pixel++;
+                }
+                else {
+                    precedentEstVoisin = false;
+                    voisins[j] = -1;
+                }
+            }
+		}
+		delete[] voisins;
+
+		// first set up horizontal neighbors
+		/*for (int y = 0; y < height; y++ )
+			for (int  x = 1; x < width; x++ ){
+				int p1 = x-1+y*width;
+				int p2 =x+y*width;
+				gc->setNeighbors(p1,p2,p1+p2);
+			}
+
+		// next set up vertical neighbors
+		for (int y = 1; y < height; y++ )
+			for (int  x = 0; x < width; x++ ){
+				int p1 = x+(y-1)*width;
+				int p2 =x+y*width;
+				gc->setNeighbors(p1,p2,p1*p2);
+			}*/
+
+        /*for (i = 0; i < nombrePixels; i++ )
+			traduction[i] = gc->whatLabel(i);*/
+
+			for (i = 0; i < 50; i++ )
+			cout << "i " << i << " : " << gc->whatLabel(i) << endl;
+
+		printf("\nBefore optimization energy is %d",gc->compute_energy());
+		gc->expansion(2);// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
+		printf("\nAfter optimization energy is %d",gc->compute_energy());
+
+		/*for (i = 0; i < nombrePixels; i++ ) {
+		    int label = gc->whatLabel(i);
+		    result[i] = 0;
+            for (j = 0 ; j < nombrePixels ; j++) {
+                if (traduction[j] == label) {
+                    result[i] = j;
+                    break;
+                }
+            }
+		}*/
+
+		for (i = 0; i < nombrePixels; i++ )
+			result[i] = gc->whatLabel(i);
+
+		delete gc;
+	}
+	catch (GCException e){
+		e.Report();
+	}
+
+	delete [] result;
+	delete [] smooth;
+	delete [] data;
+
+    return result;
+
 }
 
 void Image::afficheResultat(const string& nomFenetre) const {
@@ -249,7 +424,7 @@ void Image::calcule2(int taillePatch, int tau) {
     long diffMin, diff;
     int distCarre;
     int x = 0, y = 0; // composantes de l'offset à trouver pour chaque pixel
-    int i, j, k, l, m, n;
+    int i, j, k, l;
     offsets.clear();
 
     clock_t beginTime;

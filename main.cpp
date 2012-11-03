@@ -98,7 +98,7 @@ void testBlancNoir() {
         //im.calcule2(2, 0);
         //im.afficheOffsets();
         //im.afficheOffsetsPixels(2);
-        im.complete();
+        im.completeKolmogorov();
         im.afficheResultat("resultat");
         Rendu3D renduOffsetsTries(&im, "K plus grands offsets");
     }

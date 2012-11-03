@@ -28,7 +28,9 @@ class Image {
         int getTaille() const;
         void selectionneOffsets(int K);
         cv::Mat complete();
+        void completeKolmogorov();
         void afficheResultat(const std::string& nomFenetre) const;
+        int* GeneralGraph_DArraySArraySpatVarying(int nombrePixels);
 
     private:
         cv::Mat pixels;
