@@ -40,6 +40,7 @@ class Image {
         int tailleX, tailleY;
         std::vector<Offset> offsets;
 
+
         Offset** tableauOffsetsPixels;
 };
 

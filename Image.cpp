@@ -8,6 +8,66 @@
 using namespace std;
 using namespace cv;
 
+Image* instance_i;
+int *posXPixels;
+int *posYPixels;
+int NOMBRE = 0;
+
+int smoothFn(int p1, int p2, int l1, int l2)
+{
+            int tailleX = instance_i->getTaille();
+            int tailleY = instance_i->getTaille();
+            const Mat& pixels = instance_i->getPixels();
+            vector<Offset> offsets = instance_i->getOffsets();
+
+            //Coordonnées des pixels 1 et 2 à partir de leur numéro
+            int y1 = posYPixels[p1];
+            int x1 = posXPixels[p1];
+            int y2 = posYPixels[p2];
+            int x2 = posXPixels[p2];
+
+
+            if (l1 >= 0 && l1 < offsets.size() && l2 >=0 && l2 < offsets.size()) { // normalement inutile
+                int y1l1 = y1+offsets.at(l1).getY();
+                int x1l1 = x1+offsets.at(l1).getX();
+                int y1l2 = y1+offsets.at(l2).getY();
+                int x1l2 = x1+offsets.at(l2).getX();
+                int y2l1 = y2+offsets.at(l1).getY();
+                int x2l1 = x2+offsets.at(l1).getX();
+                int y2l2 = y2+offsets.at(l2).getY();
+                int x2l2 = x2+offsets.at(l2).getX();
+
+                if (y1l1 >= 0 && y1l1 < tailleY && y1l2 >= 0 && y1l2 < tailleY && y2l1 >= 0 && y2l1 < tailleY && y2l2 >= 0 && y2l2 < tailleY) {
+                    if (x1l1 >= 0 && x1l1 < tailleX && x1l2 >= 0 && x1l2 < tailleX && x2l1 >= 0 && x2l1 < tailleX && x2l2 >= 0 && x2l2 < tailleX) {
+
+                        //pixel1L1 = valeur du pixel situé en pixel1+(offset associé au Label 1)
+                        uchar pixel1L1 = pixels.ptr<uchar>(y1l1)[x1l1];
+                        uchar pixel1L2 = pixels.ptr<uchar>(y1l2)[x1l2];
+                        uchar pixel2L1 = pixels.ptr<uchar>(y2l1)[x2l1];
+                        uchar pixel2L2 = pixels.ptr<uchar>(y2l2)[x2l2];
+
+                        int normaliseur = 1; // 10 000 pour colonnes parfaites
+
+                        int res = (int) (((pixel1L1-pixel1L2)*(pixel1L1-pixel1L2) + (pixel2L1-pixel2L2)*(pixel2L1-pixel2L2))/normaliseur);
+
+                        return res;
+                    }
+                    else {
+                        //cout << "Problème pixels : " << p1 << "," << p2 << endl;
+                        return 0;
+                    }
+                }
+                else {
+                    //cout << "Problème pixels : " << p1 << "," << p2 << endl;
+                    return 0;
+                }
+
+            }
+            else {
+                //cout << "Problème labels : " << l1 << "," << l2 << endl;
+                return 0;
+            }
+}
 
 Image::Image(const string& cheminFichier) {
     pixels = imread(cheminFichier, 0); // charge l'image en niveaux de gris
@@ -23,6 +83,8 @@ Image::Image(const string& cheminFichier) {
     for (int i = 0 ; i < tailleY ; i++) {
         tableauOffsetsPixels[i] = new Offset[tailleX];
     }
+
+    instance_i = this;
 }
 
 Image::Image(const string& cheminFichier, const string& cheminMasque) {
@@ -42,6 +104,8 @@ Image::Image(const string& cheminFichier, const string& cheminMasque) {
     for (int i = 0 ; i < tailleY ; i++) {
         tableauOffsetsPixels[i] = new Offset[tailleX];
     }
+
+    instance_i = this;
 }
 
 
@@ -255,6 +319,8 @@ void Image::completeKolmogorov() {
         }
     }
     int* result = GeneralGraph_DArraySArraySpatVarying(nombrePixelsMasque);
+    delete[] posXPixels;
+    delete[] posYPixels;
     int x = 0, y = 0, k = 0;
     Offset aux;
     for (i = 0 ; i < tailleY ; i++) {
@@ -265,9 +331,11 @@ void Image::completeKolmogorov() {
                     aux = offsets.at(result[k]);
                     x = j + aux.getX();
                     y = i + aux.getY();
+
                     if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                         if (masque.ptr<uchar>(y)[x] > 126) {
                             resultat.ptr<uchar>(i)[j] = pixels.ptr<uchar>(y)[x];
+                            cout << result[k] << "," << aux.getX() << "," << aux.getY() << " ";
                         }
                         else
                             resultat.ptr<uchar>(i)[j] = 0;
@@ -283,9 +351,14 @@ void Image::completeKolmogorov() {
             }
         }
     }
+
+    delete[] result;
 }
 
+
+
 int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
+
     int nombreLabels = offsets.size();
 	int *result = new int[nombrePixels];   // stores result of optimization
 	int *traduction = new int[nombrePixels];
@@ -296,43 +369,51 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
 	// first set up the array for data costs
 	int *data = new int[nombrePixels*nombreLabels];
 	int pixel = 0;
+
+    NOMBRE = nombrePixels;
+    cout << "NOMBRE de pixels : " << NOMBRE << ", nombre de labels : " << nombreLabels << endl;
+	//Définition de la fonction d'attache aux données Ed
 	for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
-            if (masque.ptr<uchar>(i)[j] < 126) {
-                for (k = offsets.begin() ; k != offsets.end() ; ++k) {
+            if (masque.ptr<uchar>(i)[j] < 126) //Si le pixel se situe dans la zone inconnue
+            {
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) //On parcout tous les Offsets
+                {
+                    //Coordonnées du pixel+offset
                     x = j + k->getX();
                     y = i + k->getY();
-                    if (y >= 0 && y < tailleY && x >= 0 && x < tailleX && masque.ptr<uchar>(y)[x] > 126)
+
+                    if (y >= 0 && y < tailleY && x >= 0 && x < tailleX && masque.ptr<uchar>(y)[x] > 126)//Si pixel+offset se situe dans l'image ET dans la zone connue
                         data[pixel] = 0;
                     else
-                        data[pixel] = 1000;
+                        data[pixel] = 10000000; // 1000 pour colonnes parfaites
                     pixel++;
                 }
             }
         }
     }
-	/*for ( int i = 0; i < num_pixels; i++ )
-		for (int l = 0; l < num_labels; l++ )
-			if (i < 25 ){
-				if(  l == 0 ) data[i*num_labels+l] = 0;
-				else data[i*num_labels+l] = 10;
-			}
-			else {
-				if(  l == 5 ) data[i*num_labels+l] = 0;
-				else data[i*num_labels+l] = 10;
-			}*/
 
-	// next set up the array for smooth costs
-	int *smooth = new int[nombreLabels*nombreLabels];
-	for ( int l1 = 0; l1 < nombreLabels; l1++ )
-		for (int l2 = 0; l2 < nombreLabels; l2++ )
-			smooth[l1+l2*nombreLabels] = (l1-l2)*(l1-l2) <= 4  ? (l1-l2)*(l1-l2):4;
-
+    // On remplit deux tableaux pour représenter les coordonnées dans l'image des pixels manquants
+    pixel = 0;
+    posXPixels = new int[nombrePixels];
+    posYPixels = new int[nombrePixels];
+    for (i = 0 ; i < tailleY ; i++) {
+        for (j = 0 ; j < tailleX ; j++) {
+            if (masque.ptr<uchar>(i)[j] < 126) { //Si le pixel se situe dans la zone inconnue
+                posXPixels[pixel] = j;
+                posYPixels[pixel] = i;
+                //cout << posXPixels[pixel] <<"," << posYPixels[pixel] << " ";
+                pixel++;
+            }
+        }
+    }
 
 	try{
 		GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph(nombrePixels, nombreLabels);
+		//int (Image::*ptr)(int, int, int, int) = &Image::smoothFn;
+
 		gc->setDataCost(data);
-		gc->setSmoothCost(smooth);
+		gc->setSmoothCost(&smoothFn);
 
 		// now set up a grid neighborhood system
 		pixel = 0;
@@ -361,42 +442,9 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
 		}
 		delete[] voisins;
 
-		// first set up horizontal neighbors
-		/*for (int y = 0; y < height; y++ )
-			for (int  x = 1; x < width; x++ ){
-				int p1 = x-1+y*width;
-				int p2 =x+y*width;
-				gc->setNeighbors(p1,p2,p1+p2);
-			}
-
-		// next set up vertical neighbors
-		for (int y = 1; y < height; y++ )
-			for (int  x = 0; x < width; x++ ){
-				int p1 = x+(y-1)*width;
-				int p2 =x+y*width;
-				gc->setNeighbors(p1,p2,p1*p2);
-			}*/
-
-        /*for (i = 0; i < nombrePixels; i++ )
-			traduction[i] = gc->whatLabel(i);*/
-
-			for (i = 0; i < 50; i++ )
-			cout << "i " << i << " : " << gc->whatLabel(i) << endl;
-
 		printf("\nBefore optimization energy is %d",gc->compute_energy());
-		gc->expansion(2);// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
-		printf("\nAfter optimization energy is %d",gc->compute_energy());
-
-		/*for (i = 0; i < nombrePixels; i++ ) {
-		    int label = gc->whatLabel(i);
-		    result[i] = 0;
-            for (j = 0 ; j < nombrePixels ; j++) {
-                if (traduction[j] == label) {
-                    result[i] = j;
-                    break;
-                }
-            }
-		}*/
+		gc->swap(2);// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
+		printf("\nAfter optimization energy is %d\n",gc->compute_energy());
 
 		for (i = 0; i < nombrePixels; i++ )
 			result[i] = gc->whatLabel(i);
@@ -406,13 +454,9 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
 	catch (GCException e){
 		e.Report();
 	}
-
-	delete [] result;
-	delete [] smooth;
 	delete [] data;
 
     return result;
-
 }
 
 void Image::afficheResultat(const string& nomFenetre) const {

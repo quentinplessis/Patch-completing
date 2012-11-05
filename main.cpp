@@ -100,6 +100,7 @@ void testBlancNoir() {
         //im.afficheOffsetsPixels(2);
         im.completeKolmogorov();
         im.afficheResultat("resultat");
+        // à mettre en dernier : affichage via GLUT bloque le reste de l'exécution
         Rendu3D renduOffsetsTries(&im, "K plus grands offsets");
     }
     catch (string const& e) {
