@@ -7,7 +7,7 @@ Rendu3D* g_instance;
 
 Rendu3D::Rendu3D(Image* img, const char* nomFenetre) {
     image = img;
-    sideRange = image->getTaille();
+    sideRange = image->getTailleX();
 
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutCreateWindow(nomFenetre);

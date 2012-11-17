@@ -5,87 +5,11 @@
 #include "Patch.hpp"
 #include "gco-v3.0/GCoptimization.h"
 
+#define INFINI  10000000
+
 using namespace std;
 using namespace cv;
 
-Image* instance_i;
-int *posXPixels;
-int *posYPixels;
-int NOMBRE = 0;
-
-int smoothFn(int p1, int p2, int l1, int l2)
-{
-            int tailleX = instance_i->getTaille();
-            int tailleY = instance_i->getTaille();
-            const Mat& pixels = instance_i->getPixels();
-            vector<Offset> offsets = instance_i->getOffsets();
-
-            //Coordonnées des pixels 1 et 2 à partir de leur numéro
-            int y1 = posYPixels[p1];
-            int x1 = posXPixels[p1];
-            int y2 = posYPixels[p2];
-            int x2 = posXPixels[p2];
-
-
-            if (l1 >= 0 && l1 < offsets.size() && l2 >=0 && l2 < offsets.size()) { // normalement inutile
-                int y1l1 = y1+offsets.at(l1).getY();
-                int x1l1 = x1+offsets.at(l1).getX();
-                int y1l2 = y1+offsets.at(l2).getY();
-                int x1l2 = x1+offsets.at(l2).getX();
-                int y2l1 = y2+offsets.at(l1).getY();
-                int x2l1 = x2+offsets.at(l1).getX();
-                int y2l2 = y2+offsets.at(l2).getY();
-                int x2l2 = x2+offsets.at(l2).getX();
-
-                if (y1l1 >= 0 && y1l1 < tailleY && y1l2 >= 0 && y1l2 < tailleY && y2l1 >= 0 && y2l1 < tailleY && y2l2 >= 0 && y2l2 < tailleY) {
-                    if (x1l1 >= 0 && x1l1 < tailleX && x1l2 >= 0 && x1l2 < tailleX && x2l1 >= 0 && x2l1 < tailleX && x2l2 >= 0 && x2l2 < tailleX) {
-
-                        //pixel1L1 = valeur du pixel situé en pixel1+(offset associé au Label 1)
-                        uchar pixel1L1 = pixels.ptr<uchar>(y1l1)[x1l1];
-                        uchar pixel1L2 = pixels.ptr<uchar>(y1l2)[x1l2];
-                        uchar pixel2L1 = pixels.ptr<uchar>(y2l1)[x2l1];
-                        uchar pixel2L2 = pixels.ptr<uchar>(y2l2)[x2l2];
-
-                        int normaliseur = 1; // 10 000 pour colonnes parfaites
-
-                        int res = (int) (((pixel1L1-pixel1L2)*(pixel1L1-pixel1L2) + (pixel2L1-pixel2L2)*(pixel2L1-pixel2L2))/normaliseur);
-
-                        return res;
-                    }
-                    else {
-                        //cout << "Problème pixels : " << p1 << "," << p2 << endl;
-                        return 0;
-                    }
-                }
-                else {
-                    //cout << "Problème pixels : " << p1 << "," << p2 << endl;
-                    return 0;
-                }
-
-            }
-            else {
-                //cout << "Problème labels : " << l1 << "," << l2 << endl;
-                return 0;
-            }
-}
-
-Image::Image(const string& cheminFichier) {
-    pixels = imread(cheminFichier, 0); // charge l'image en niveaux de gris
-    if (pixels.empty())
-        throw string("Image vide");
-
-    tailleX = pixels.cols;
-    tailleY = pixels.rows;
-
-    possedeMasque = false;
-
-    tableauOffsetsPixels = new Offset*[tailleY];
-    for (int i = 0 ; i < tailleY ; i++) {
-        tableauOffsetsPixels[i] = new Offset[tailleX];
-    }
-
-    instance_i = this;
-}
 
 Image::Image(const string& cheminFichier, const string& cheminMasque) {
     pixels = imread(cheminFichier, 0); // charge l'image en niveaux de gris
@@ -98,62 +22,20 @@ Image::Image(const string& cheminFichier, const string& cheminMasque) {
     masque = imread(cheminMasque, 0);
     if (masque.cols != tailleX || masque.rows != tailleY)
         throw string("Le masque n'est pas de la même taille que l'image");
-    possedeMasque = true;
-
-    tableauOffsetsPixels = new Offset*[tailleY];
-    for (int i = 0 ; i < tailleY ; i++) {
-        tableauOffsetsPixels[i] = new Offset[tailleX];
-    }
-
-    instance_i = this;
 }
 
-
-Image::~Image() {
-    for (int i = 0 ; i < tailleY ; i++) {
-        delete(tableauOffsetsPixels[i]);
-    }
-    delete(tableauOffsetsPixels);
-}
-
+/**
+    Fonction de comparaison de deux offsets utilisée pour trier les offsets par nombre d'occurences.
+    Renvoie true si o1 apparaît plus de fois que o2.
+    Un tri par ordre croissant permet donc de trier les offsets du plus fréquent au moins fréquent.
+*/
 bool comparaisonOffsets(Offset o1, Offset o2) {
     return o1.getN() > o2.getN();
 }
 
-void Image::setMasque(const string& cheminFichier) {
-    masque = imread(cheminFichier, 0);
-    if (masque.cols != tailleX || masque.rows != tailleY)
-        throw string("Le masque n'est pas de la même taille que l'image");
-    possedeMasque = true;
-}
-
-void Image::affichePixels() const {
-    cout << "Taille Image : " << tailleX << "x" << tailleY << endl;
-    cout << "Pixels = " << endl << pixels << endl << endl;
-    if (possedeMasque)
-        cout << "Masque = " << endl << masque << endl << endl;
-}
-
-void Image::afficheImage(const std::string& nomFenetre) const {
-    imshow(nomFenetre, pixels);
-}
-
-void Image::afficheMasque(const std::string& nomFenetre) const {
-    imshow(nomFenetre, masque);
-}
-
-const Mat& Image::getPixels() const {
-    const Mat& ref = pixels;
-    return ref;
-}
-
-const Mat& Image::getMasque() const {
-    const Mat& ref = masque;
-    return ref;
-}
-
-// Ajoute un offset à l'image s'il n'existe pas,
-// sinon incrémente son nombre d'occurences
+/**
+    Ajoute un offset à l'image s'il n'existe pas, sinon incrémente son nombre d'occurences.
+*/
 Offset Image::ajouterOffset(int x, int y) {
     vector<Offset>::iterator i;
     // On parcourt tout le tableau des offsets
@@ -169,7 +51,11 @@ Offset Image::ajouterOffset(int x, int y) {
     return offsets.back();
 }
 
-
+/**
+    Pour chaque pixel de l'image, détermine le vecteur tel que le patch de pixels dont le coin en haut à gauche
+    est le pixel actuel et de taille taillePatch ressemble le plus à son translaté par le vecteur en question.
+    Les vecteurs de norme inférieure ou égale à tau ne sont pas retenus.
+*/
 void Image::calculeOffsets(int taillePatch, int tau) {
     long diffMin, diff;
     int distCarre;
@@ -205,10 +91,8 @@ void Image::calculeOffsets(int taillePatch, int tau) {
                         break;
                 }
             }
-            if (!patch1Valide) {
-               // tableauOffsetsPixels[i][j] = Offset();
+            if (!patch1Valide)
                 continue;
-            }
 
             diffMin = -1;
             x = 0;
@@ -250,12 +134,11 @@ void Image::calculeOffsets(int taillePatch, int tau) {
 
             // (x,y) coordonnées de l'offset
             ajouterOffset(x, y);
-            //tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
         }
         cout << "Ligne " << i << endl;
     }
     endTime = clock();
-    cout << "Time: " << (endTime - beginTime) / CLOCKS_PER_SEC << endl;
+    cout << "Time: " << (endTime - beginTime) / CLOCKS_PER_SEC << endl << endl;
 
     delete p;
     delete pp;
@@ -263,20 +146,29 @@ void Image::calculeOffsets(int taillePatch, int tau) {
     delete pp2;
 }
 
+/**
+    Selectionne les K offsets les plus fréquents
+*/
 void Image::selectionneOffsets(int K) {
-    cout << "Nombre d'offsets au total : " << offsets.size() << endl;
-    cout << "On conserve les " << K << " plus importants" << endl;
-    std::sort(offsets.begin(), offsets.end(), comparaisonOffsets);
-    offsets.resize(K);
+    cout << "Au total, il y a " << offsets.size() << " offsets." << endl;
+    cout << "On ne conserve que les " << K << " plus frequents." << endl << endl;
+    if (offsets.size() > K) {
+        std::sort(offsets.begin(), offsets.end(), comparaisonOffsets);
+        offsets.resize(K);
+    }
 }
 
-Mat Image::complete() {
+/**
+    Complète la zone inconnue de l'image en affectant à chaque pixel manquant une valeur
+    égale à la moyenne des valeurs des K-translatés.
+*/
+void Image::completeMoyenne() {
     resultat = pixels;
-
     int i, j, x, y;
     int valeur, nombre;
     vector<Offset>::iterator k;
-    char aux;
+
+    cout << "On complete la zone inconnue avec la methode de la moyenne." << endl << endl;
 
     for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
@@ -301,16 +193,18 @@ Mat Image::complete() {
             }
         }
     }
-
-    cout << "salut" << (int) resultat.ptr<uchar>(0)[0] << endl;
-
-    return resultat;
 }
 
+/**
+    Complète la zone inconnue de l'image en utilisant la méthode des graph-cuts.
+    On utilise les graph-cuts de Kolmogorov.
+*/
 void Image::completeKolmogorov() {
     int i, j;
     int nombrePixelsMasque = 0;
     resultat = pixels;
+
+    cout << "On complete la zone inconnue avec la methode des graph-cuts. On utilise les graph-cuts de Kolmogorov." << endl;
 
     for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
@@ -318,9 +212,8 @@ void Image::completeKolmogorov() {
                 nombrePixelsMasque++;
         }
     }
-    int* result = GeneralGraph_DArraySArraySpatVarying(nombrePixelsMasque);
-    delete[] posXPixels;
-    delete[] posYPixels;
+    int* result = optimisationChampsMarkov(nombrePixelsMasque);
+
     int x = 0, y = 0, k = 0;
     Offset aux;
     for (i = 0 ; i < tailleY ; i++) {
@@ -345,7 +238,7 @@ void Image::completeKolmogorov() {
                 }
                 else {
                     resultat.ptr<uchar>(i)[j] = 0;
-                    cout << "choix " << k << " : " << (int) result[k] << endl;
+                    cout << "Label bizarre pour le pixel " << k << " : " << (int) result[k] << endl;
                 }
                 k++;
             }
@@ -355,30 +248,62 @@ void Image::completeKolmogorov() {
     delete[] result;
 }
 
+/**
+    Définition du terme a priori, Es.
+*/
+int Image::smoothFunction(int p1, int p2, int l1, int l2) {
+    //Coordonnées des pixels 1 et 2 à partir de leur numéro
+    int y1 = posYPixels[p1];
+    int x1 = posXPixels[p1];
+    int y2 = posYPixels[p2];
+    int x2 = posXPixels[p2];
 
+    int y1l1 = y1+offsets.at(l1).getY();
+    int x1l1 = x1+offsets.at(l1).getX();
+    int y1l2 = y1+offsets.at(l2).getY();
+    int x1l2 = x1+offsets.at(l2).getX();
+    int y2l1 = y2+offsets.at(l1).getY();
+    int x2l1 = x2+offsets.at(l1).getX();
+    int y2l2 = y2+offsets.at(l2).getY();
+    int x2l2 = x2+offsets.at(l2).getX();
 
-int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
+    if (y1l1 >= 0 && y1l1 < tailleY && y1l2 >= 0 && y1l2 < tailleY && y2l1 >= 0 && y2l1 < tailleY && y2l2 >= 0 && y2l2 < tailleY) {
+        if (x1l1 >= 0 && x1l1 < tailleX && x1l2 >= 0 && x1l2 < tailleX && x2l1 >= 0 && x2l1 < tailleX && x2l2 >= 0 && x2l2 < tailleX) {
+            //pixel1L1 = valeur du pixel situé en pixel1+(offset associé au Label 1)
+            uchar pixel1L1 = pixels.ptr<uchar>(y1l1)[x1l1];
+            uchar pixel1L2 = pixels.ptr<uchar>(y1l2)[x1l2];
+            uchar pixel2L1 = pixels.ptr<uchar>(y2l1)[x2l1];
+            uchar pixel2L2 = pixels.ptr<uchar>(y2l2)[x2l2];
 
+            int res = (int) ((pixel1L1-pixel1L2)*(pixel1L1-pixel1L2) + (pixel2L1-pixel2L2)*(pixel2L1-pixel2L2));
+            return res;
+        }
+        else
+            return INFINI;
+    }
+    else
+        return INFINI;
+}
+
+/**
+    Optimise l'énergie associée aux champs de Markov mis en jeu.
+    Renvoie une tableau indiquant le label affecté à chaque pixel.
+*/
+int* Image::optimisationChampsMarkov(int nombrePixels) {
     int nombreLabels = offsets.size();
-	int *result = new int[nombrePixels];   // stores result of optimization
-	int *traduction = new int[nombrePixels];
-
+	int *result = new int[nombrePixels];   // resultat de l'optimisation : result[i] = label à attribuer au pixel i
+	int *data = new int[nombrePixels*nombreLabels];
 	int i, j, x, y;
 	vector<Offset>::iterator k;
 
-	// first set up the array for data costs
-	int *data = new int[nombrePixels*nombreLabels];
-	int pixel = 0;
+    cout << "Affectation des labels aux pixels." << endl << "Nombre de pixels : " << nombrePixels << ", nombre de labels : " << nombreLabels << endl;
 
-    NOMBRE = nombrePixels;
-    cout << "NOMBRE de pixels : " << NOMBRE << ", nombre de labels : " << nombreLabels << endl;
-	//Définition de la fonction d'attache aux données Ed
+	//Définition de la fonction d'attache aux données Ed : data
+	int pixel = 0;
 	for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
-            if (masque.ptr<uchar>(i)[j] < 126) //Si le pixel se situe dans la zone inconnue
-            {
-                for (k = offsets.begin() ; k != offsets.end() ; ++k) //On parcout tous les Offsets
-                {
+            if (masque.ptr<uchar>(i)[j] < 126) { //Si le pixel se situe dans la zone inconnue
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) { //On parcout tous les Offsets
                     //Coordonnées du pixel+offset
                     x = j + k->getX();
                     y = i + k->getY();
@@ -386,7 +311,7 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
                     if (y >= 0 && y < tailleY && x >= 0 && x < tailleX && masque.ptr<uchar>(y)[x] > 126)//Si pixel+offset se situe dans l'image ET dans la zone connue
                         data[pixel] = 0;
                     else
-                        data[pixel] = 10000000; // 1000 pour colonnes parfaites
+                        data[pixel] = INFINI;
                     pixel++;
                 }
             }
@@ -402,34 +327,32 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
             if (masque.ptr<uchar>(i)[j] < 126) { //Si le pixel se situe dans la zone inconnue
                 posXPixels[pixel] = j;
                 posYPixels[pixel] = i;
-                //cout << posXPixels[pixel] <<"," << posYPixels[pixel] << " ";
                 pixel++;
             }
         }
     }
 
-	try{
+	try {
 		GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph(nombrePixels, nombreLabels);
-		//int (Image::*ptr)(int, int, int, int) = &Image::smoothFn;
-
 		gc->setDataCost(data);
-		gc->setSmoothCost(&smoothFn);
+		gc->setSmoothCost(&Image::staticSmoothFunction, this);
 
-		// now set up a grid neighborhood system
+		// On définit les voisins dans la zone inconnue (4-connexité)
 		pixel = 0;
 		int *voisins = new int[tailleX];
 		bool precedentEstVoisin = false;
+
         for (i = 0 ; i < tailleY ; i++) {
 		    precedentEstVoisin = false;
             for (j = 0 ; j < tailleX ; j++) {
                 if (masque.ptr<uchar>(i)[j] < 126) {
                     if (precedentEstVoisin)
                         gc->setNeighbors(pixel-1, pixel, 1);
-                    precedentEstVoisin = true;
 
+                    precedentEstVoisin = true;
                     if (i != 0) {
                         if (voisins[j] != -1)
-                        gc->setNeighbors(voisins[j], pixel, 1);
+                            gc->setNeighbors(voisins[j], pixel, 1);
                     }
                     voisins[j] = pixel;
                     pixel++;
@@ -442,73 +365,39 @@ int* Image::GeneralGraph_DArraySArraySpatVarying(int nombrePixels) {
 		}
 		delete[] voisins;
 
-		printf("\nBefore optimization energy is %d",gc->compute_energy());
+        // On optimise
+		printf("Valeur de l'energie avant optimisation : %lld \n", gc->compute_energy());
 		gc->swap(2);// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
-		printf("\nAfter optimization energy is %d\n",gc->compute_energy());
+		printf("Valeur de l'energie apres optimisation : %lld \n", gc->compute_energy());
 
-		for (i = 0; i < nombrePixels; i++ )
+        // On stocke le résultat
+		for (i = 0; i < nombrePixels; i++)
 			result[i] = gc->whatLabel(i);
 
 		delete gc;
 	}
-	catch (GCException e){
+	catch (GCException e) {
 		e.Report();
 	}
-	delete [] data;
+	delete[] data;
+	delete[] posXPixels;
+    delete[] posYPixels;
 
     return result;
 }
 
-void Image::afficheResultat(const string& nomFenetre) const {
-    imshow(nomFenetre, resultat);
+void Image::affichePixels() const {
+    cout << "Taille Image : " << tailleX << "x" << tailleY << endl;
+    cout << "Pixels = " << endl << pixels << endl << endl;
+    cout << "Masque = " << endl << masque << endl << endl;
 }
 
-void Image::calcule2(int taillePatch, int tau) {
-    Patch p1(taillePatch, pixels, masque), p2(taillePatch, pixels, masque);
-    long diffMin, diff;
-    int distCarre;
-    int x = 0, y = 0; // composantes de l'offset à trouver pour chaque pixel
-    int i, j, k, l;
-    offsets.clear();
+void Image::afficheImage(const std::string& nomFenetre) const {
+    imshow(nomFenetre, pixels);
+}
 
-    clock_t beginTime;
-    clock_t endTime;
-
-    for (i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
-        beginTime = clock();
-        for (j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
-            p1.setPosition(j, i);
-            if (!possedeMasque || p1.estValide()) { // le patch p1 est entièrement contenu dans la zone connue de l'image
-                diffMin = -1;
-                x = 0;
-                y = 0;
-
-                for (k = 0 ; k < tailleY - taillePatch + 1 ; k++) {
-                    for (l = 0 ; l < tailleX - taillePatch + 1; l++) {
-                        p2.setPosition(l, k);
-                        if (!possedeMasque || p2.estValide()) {
-                            distCarre = (i-k)*(i-k)+(j-l)*(j-l);
-                            if (distCarre > tau*tau) {
-                                diff = p1.difference(p2);
-                                if (diffMin == -1 || diff < diffMin) {
-                                    diffMin = diff;
-                                    y = k-i;
-                                    x = l-j;
-                                }
-                            }
-                        }
-                    }
-                }
-                //tableauOffsetsPixels[i][j] = ajouterOffset(x, y);
-                ajouterOffset(x, y);
-            }
-            else {
-                //tableauOffsetsPixels[i][j] = Offset();
-            }
-        }
-        endTime = clock();
-        cout << "Ligne " << i << " : " << (endTime - beginTime) / CLOCKS_PER_SEC << endl;
-    }
+void Image::afficheMasque(const std::string& nomFenetre) const {
+    imshow(nomFenetre, masque);
 }
 
 void Image::afficheOffsets() {
@@ -520,26 +409,34 @@ void Image::afficheOffsets() {
     }
 }
 
-void Image::afficheOffsetsPixels(int taillePatch) {
-    cout << "Offsets de l'image par pixel (ne pas tenir compte des 'fois') :" << endl;
-
-    for (int i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
-        for (int j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
-            //cout << "Pixel " << i << "," << j << " : ";
-            tableauOffsetsPixels[i][j].affiche();
-            cout << ", ";
-        }
-        cout << endl;
-    }
+void Image::afficheResultat(const string& nomFenetre) const {
+    imshow(nomFenetre, resultat);
 }
 
-int Image::getTaille() const {
+const Mat& Image::getPixels() const {
+    const Mat& ref = pixels;
+    return ref;
+}
+
+const Mat& Image::getMasque() const {
+    const Mat& ref = masque;
+    return ref;
+}
+
+int Image::getTailleX() const {
     return tailleX;
+}
+
+int Image::getTailleY() const {
+    return tailleY;
 }
 
 std::vector<Offset> Image::getOffsets() const {
     return offsets;
 }
+
+
+
 
 
 

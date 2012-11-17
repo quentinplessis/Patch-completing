@@ -9,39 +9,43 @@
 
 class Image {
     public:
-        Image(const std::string& cheminFichier);
         Image(const std::string& cheminFichier, const std::string& cheminMasque);
-        ~Image();
+
         void affichePixels() const;
         void afficheImage(const std::string& nomFenetre) const;
         void afficheMasque(const std::string& nomFenetre) const;
+        void afficheOffsets();
+        void afficheOffsetsPixels(int taillePatch);
+        void afficheResultat(const std::string& nomFenetre) const;
+
         const cv::Mat& getPixels() const;
         const cv::Mat& getMasque() const;
-        void setMasque(const std::string& cheminFichier);
+        int getTailleX() const;
+        int getTailleY() const;
+        std::vector<Offset> getOffsets() const;
 
         Offset ajouterOffset(int x, int y);
         void calculeOffsets(int taillePatch, int tau);
-        void calcule2(int taillePatch, int tau);
-        void afficheOffsets();
-        void afficheOffsetsPixels(int taillePatch);
-        std::vector<Offset> getOffsets() const;
-        int getTaille() const;
         void selectionneOffsets(int K);
-        cv::Mat complete();
+
+        void completeMoyenne();
         void completeKolmogorov();
-        void afficheResultat(const std::string& nomFenetre) const;
-        int* GeneralGraph_DArraySArraySpatVarying(int nombrePixels);
+
+        int* optimisationChampsMarkov(int nombrePixels);
+        int smoothFunction(int p1, int p2, int l1, int l2);
+
+        static int staticSmoothFunction(int p1, int p2, int l1, int l2, void *param) {
+            Image* obj = reinterpret_cast<Image*>(param);
+            return obj->smoothFunction(p1, p2, l1, l2);
+        }
 
     private:
         cv::Mat pixels;
         cv::Mat masque;
         cv::Mat resultat;
-        bool possedeMasque;
         int tailleX, tailleY;
         std::vector<Offset> offsets;
-
-
-        Offset** tableauOffsetsPixels;
+        int *posXPixels, *posYPixels;
 };
 
 
