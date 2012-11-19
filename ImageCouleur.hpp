@@ -12,6 +12,7 @@ class ImageCouleur {
         void afficheMasque(const std::string& fenetre) const ;
         void afficheOffsets() const ;
         void afficheResultat(const std::string& fenetre) const ;
+        void sauvegarder(const std::string& nom);
         Image* getImageCalculs() const;
 
     private:

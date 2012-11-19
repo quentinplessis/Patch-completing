@@ -17,6 +17,7 @@ class Image {
         void afficheOffsets();
         void afficheOffsetsPixels(int taillePatch);
         void afficheResultat(const std::string& nomFenetre) const;
+        void sauvegarder(const std::string& nom);
 
         const cv::Mat& getPixels() const;
         const cv::Mat& getMasque() const;
@@ -26,6 +27,7 @@ class Image {
 
         Offset ajouterOffset(int x, int y);
         void calculeOffsets(int taillePatch, int tau);
+        void calculeOffsetsKDTrees(int taillePatch, int tau);
         void selectionneOffsets(int K);
 
         void completeMoyenne();

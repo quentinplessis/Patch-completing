@@ -17,7 +17,8 @@ ImageCouleur::ImageCouleur(const string& cheminFichier, const string& cheminMasq
 
 void ImageCouleur::complete(int taillePatch, int tau) {
         // Calcul des offsets
-        image->calculeOffsets(taillePatch, tau);
+        //image->calculeOffsets(taillePatch, tau);
+        image->calculeOffsetsKDTrees(taillePatch, tau);
         image->selectionneOffsets(60);
         offsets = image->getOffsets();
 
@@ -65,6 +66,10 @@ void ImageCouleur::complete(int taillePatch, int tau) {
     }
 
     delete[] result;
+}
+
+void ImageCouleur::sauvegarder(const string& nom) {
+    imwrite(nom, resultat);
 }
 
 void ImageCouleur::afficheImage(const string& fenetre) const {

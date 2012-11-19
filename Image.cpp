@@ -4,6 +4,8 @@
 #include "Image.hpp"
 #include "Patch.hpp"
 #include "gco-v3.0/GCoptimization.h"
+#include "flann/flann.hpp"
+
 
 #define INFINI  10000000
 
@@ -135,10 +137,10 @@ void Image::calculeOffsets(int taillePatch, int tau) {
             // (x,y) coordonnées de l'offset
             ajouterOffset(x, y);
         }
-        cout << "Ligne " << i << endl;
+        std::cout << "Ligne " << i << std::endl;
     }
     endTime = clock();
-    cout << "Time: " << (endTime - beginTime) / CLOCKS_PER_SEC << endl << endl;
+    std::cout << "Time: " << (endTime - beginTime) / CLOCKS_PER_SEC << std::endl << std::endl;
 
     delete p;
     delete pp;
@@ -146,12 +148,124 @@ void Image::calculeOffsets(int taillePatch, int tau) {
     delete pp2;
 }
 
+void Image::calculeOffsetsKDTrees(int taillePatch, int tau) {
+    int i, j, k, l;
+    int nombreDonnees = 0, nombreDimensions = taillePatch*taillePatch;
+    bool patchValide = true;
+
+    //int requeteX = 4, requeteY = 1;
+
+    offsets.clear();
+
+    clock_t beginTime = clock();
+    clock_t endTime;
+
+    // On détermine le nombre de pixels de l'image pour lesquels il faut calculer les offsets
+    for (i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
+        for (j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
+            if (masque.ptr<uchar>(i)[j] > 126) {
+                patchValide = true;
+                for (k = 0 ; k < taillePatch ; k++) {
+                    for (l = 0 ; l < taillePatch ; l++) {
+                        if (masque.ptr<uchar>(i+k)[j+l] < 126) {
+                            patchValide = false;
+                            break;
+                        }
+                    }
+                    if (!patchValide)
+                        break;
+                }
+                if (patchValide)
+                    nombreDonnees++;
+            }
+        }
+    }
+
+    std::cout << "Nombre d'offsets a calculer : " << nombreDonnees << std::endl;
+
+
+    float* data = new float[nombreDonnees*nombreDimensions];
+    float* dataQuery = new float[nombreDonnees*nombreDimensions];
+    int* posXPixelValide = new int[nombreDonnees];
+    int* posYPixelValide = new int[nombreDonnees];
+
+    // On remplit les données et les requêtes
+    int pixelValide = 0;
+    for (i = 0 ; i < tailleY - taillePatch + 1 ; i++) {
+        for (j = 0 ; j < tailleX - taillePatch + 1 ; j++) {
+            if (masque.ptr<uchar>(i)[j] > 126) {
+                patchValide = true;
+                for (k = 0 ; k < taillePatch ; k++) {
+                    for (l = 0 ; l < taillePatch ; l++) {
+                        if (masque.ptr<uchar>(i+k)[j+l] < 126) {
+                            patchValide = false;
+                            break;
+                        }
+                    }
+                    if (!patchValide)
+                        break;
+                }
+                if (patchValide) {
+                    for (k = 0 ; k < taillePatch ; k++) {
+                        for (l = 0 ; l < taillePatch ; l++) {
+                            data[pixelValide*nombreDimensions+k*taillePatch+l] = pixels.ptr<uchar>(i+k)[j+l];
+                            //if (i == requeteY && j == requeteX)
+                            dataQuery[pixelValide*nombreDimensions+k*taillePatch+l] = pixels.ptr<uchar>(i+k)[j+l];
+                        }
+                    }
+                    posXPixelValide[pixelValide] = j;
+                    posYPixelValide[pixelValide] = i;
+                    pixelValide++;
+                }
+            }
+        }
+    }
+
+    int nn = 2; // nombre de nearest neighbor à rechercher
+    flann::Matrix<float> dataset(data, nombreDonnees, nombreDimensions);
+    flann::Matrix<float> query(dataQuery, nombreDonnees, nombreDimensions);
+    flann::Matrix<int> indices(new int[query.rows*nn], query.rows, nn);
+    flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn);
+    // construct an randomized kd-tree index using 4 kd-trees
+    flann::Index<flann::L2<float> > index(dataset, flann::KDTreeIndexParams(4));
+    index.buildIndex();
+    // do a knn search, using 25 checks
+    index.knnSearch(query, indices, dists, nn, flann::SearchParams(25));
+
+    for (i = 0 ; i < nombreDonnees ; i++) {
+        //cout << "Pour (" << posXPixelValide[i] << "," << posYPixelValide[i] << ") : ";
+        for (j = 0 ; j < nn ; j++) {
+            int id = indices.ptr()[i*nn+j];
+
+            int x = (posXPixelValide[id]-posXPixelValide[i]);
+            int y = (posYPixelValide[id]-posYPixelValide[i]);
+
+            long distCarre = x*x+y*y;
+            if (distCarre > tau*tau) { // mauvais
+                ajouterOffset(x, y);
+                break;
+            }
+
+        }
+    }
+
+    cout << "Resultat : " << offsets.size() << " offsets uniques" << endl;
+
+    endTime = clock();
+    std::cout << "Time: " << (endTime - beginTime) / CLOCKS_PER_SEC << std::endl << std::endl;
+
+    delete[] data;
+    delete[] dataQuery;
+    delete[] posXPixelValide;
+    delete[] posYPixelValide;
+}
+
 /**
     Selectionne les K offsets les plus fréquents
 */
 void Image::selectionneOffsets(int K) {
-    cout << "Au total, il y a " << offsets.size() << " offsets." << endl;
-    cout << "On ne conserve que les " << K << " plus frequents." << endl << endl;
+    std::cout << "Au total, il y a " << offsets.size() << " offsets." << std::endl;
+    std::cout << "On ne conserve que les " << K << " plus frequents." << std::endl << std::endl;
     if (offsets.size() > K) {
         std::sort(offsets.begin(), offsets.end(), comparaisonOffsets);
         offsets.resize(K);
@@ -168,7 +282,7 @@ void Image::completeMoyenne() {
     int valeur, nombre;
     vector<Offset>::iterator k;
 
-    cout << "On complete la zone inconnue avec la methode de la moyenne." << endl << endl;
+    std::cout << "On complete la zone inconnue avec la methode de la moyenne." << std::endl << std::endl;
 
     for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
@@ -204,7 +318,7 @@ void Image::completeKolmogorov() {
     int nombrePixelsMasque = 0;
     resultat = pixels;
 
-    cout << "On complete la zone inconnue avec la methode des graph-cuts. On utilise les graph-cuts de Kolmogorov." << endl;
+    std::cout << "On complete la zone inconnue avec la methode des graph-cuts. On utilise les graph-cuts de Kolmogorov." << std::endl;
 
     for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
@@ -228,7 +342,7 @@ void Image::completeKolmogorov() {
                     if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                         if (masque.ptr<uchar>(y)[x] > 126) {
                             resultat.ptr<uchar>(i)[j] = pixels.ptr<uchar>(y)[x];
-                            cout << result[k] << "," << aux.getX() << "," << aux.getY() << " ";
+                            //std::cout << result[k] << "," << aux.getX() << "," << aux.getY() << " ";
                         }
                         else
                             resultat.ptr<uchar>(i)[j] = 0;
@@ -238,7 +352,7 @@ void Image::completeKolmogorov() {
                 }
                 else {
                     resultat.ptr<uchar>(i)[j] = 0;
-                    cout << "Label bizarre pour le pixel " << k << " : " << (int) result[k] << endl;
+                    std::cout << "Label bizarre pour le pixel " << k << " : " << (int) result[k] << std::endl;
                 }
                 k++;
             }
@@ -296,14 +410,14 @@ int* Image::optimisationChampsMarkov(int nombrePixels) {
 	int i, j, x, y;
 	vector<Offset>::iterator k;
 
-    cout << "Affectation des labels aux pixels." << endl << "Nombre de pixels : " << nombrePixels << ", nombre de labels : " << nombreLabels << endl;
+    std::cout << "Affectation des labels aux pixels." << std::endl << "Nombre de pixels : " << nombrePixels << ", nombre de labels : " << nombreLabels << std::endl;
 
 	//Définition de la fonction d'attache aux données Ed : data
 	int pixel = 0;
 	for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
             if (masque.ptr<uchar>(i)[j] < 126) { //Si le pixel se situe dans la zone inconnue
-                for (k = offsets.begin() ; k != offsets.end() ; ++k) { //On parcout tous les Offsets
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) { //On parstd::cout tous les Offsets
                     //Coordonnées du pixel+offset
                     x = j + k->getX();
                     y = i + k->getY();
@@ -368,7 +482,7 @@ int* Image::optimisationChampsMarkov(int nombrePixels) {
         // On optimise
 		printf("Valeur de l'energie avant optimisation : %lld \n", gc->compute_energy());
 		gc->swap(2);// run expansion for 2 iterations. For swap use gc->swap(num_iterations);
-		printf("Valeur de l'energie apres optimisation : %lld \n", gc->compute_energy());
+        printf("Valeur de l'energie apres optimisation : %lld \n", gc->compute_energy());
 
         // On stocke le résultat
 		for (i = 0; i < nombrePixels; i++)
@@ -386,10 +500,14 @@ int* Image::optimisationChampsMarkov(int nombrePixels) {
     return result;
 }
 
+void Image::sauvegarder(const string& nom) {
+    imwrite(nom, resultat);
+}
+
 void Image::affichePixels() const {
-    cout << "Taille Image : " << tailleX << "x" << tailleY << endl;
-    cout << "Pixels = " << endl << pixels << endl << endl;
-    cout << "Masque = " << endl << masque << endl << endl;
+    std::cout << "Taille Image : " << tailleX << "x" << tailleY << std::endl;
+    std::cout << "Pixels = " << std::endl << pixels << std::endl << std::endl;
+    std::cout << "Masque = " << std::endl << masque << std::endl << std::endl;
 }
 
 void Image::afficheImage(const std::string& nomFenetre) const {
@@ -401,7 +519,7 @@ void Image::afficheMasque(const std::string& nomFenetre) const {
 }
 
 void Image::afficheOffsets() {
-    cout << "Offsets uniques de l'image : " << offsets.size() << endl;
+    std::cout << "Offsets uniques de l'image : " << offsets.size() << std::endl;
     vector<Offset>::iterator i;
     // On parcourt tout le tableau des offsets
     for (i = offsets.begin() ; i != offsets.end() ; ++i) {
@@ -434,6 +552,11 @@ int Image::getTailleY() const {
 std::vector<Offset> Image::getOffsets() const {
     return offsets;
 }
+
+
+
+
+
 
 
 
