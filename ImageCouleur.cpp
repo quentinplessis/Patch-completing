@@ -43,11 +43,11 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                     if (result[k] >= 0 && result[k] < offsets.size()) {
                         aux = offsets.at(result[k]);
 
-                        facteur = 1;
+                        //facteur = 1;
                         x = j + aux.getX();
                         y = i + aux.getY();
 
-                        while (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                        /*while (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                             if (masque.ptr<uchar>(y)[x] > 126) {
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
                                 break;
@@ -73,9 +73,9 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
                             else
                                 cout << "bad, ";
-                        }
+                        }*/
 
-                        /*if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                        if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                             if (masque.ptr<uchar>(y)[x] > 126)
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
                             else { // dans le masque
@@ -85,18 +85,15 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                                 if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                                     if (masque.ptr<uchar>(y)[x] > 126)
                                         resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
-                                    else {
-
-                                    }
+                                    else
+                                        cout << "bad, ";
                                 }
                                 else
-                                    cout << "bad2, ";
-
-                                //cout << "bad, ";
+                                    cout << "bad, ";
                             }
                         }
                         else
-                            cout << "bad, ";*/
+                            cout << "bad, ";
                     }
                     else
                         cout << "choix bizarre pour le pixel " << k << " : " << (int) result[k] << endl;
