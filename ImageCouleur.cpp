@@ -35,24 +35,68 @@ void ImageCouleur::complete(int taillePatch, int tau) {
         int* result = image->optimisationChampsMarkov(nombrePixelsMasque);
 
         // On renconstitue l'image
-        int x = 0, y = 0, k = 0;
+        int x = 0, y = 0, k = 0, facteur = 1;
         Offset aux;
         for (i = 0 ; i < tailleY ; i++) {
             for (j = 0 ; j < tailleX ; j++) {
                 if (masque.ptr<uchar>(i)[j] < 126) {
                     if (result[k] >= 0 && result[k] < offsets.size()) {
                         aux = offsets.at(result[k]);
+
+                        facteur = 1;
                         x = j + aux.getX();
                         y = i + aux.getY();
 
-                        if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                        while (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                            if (masque.ptr<uchar>(y)[x] > 126) {
+                                resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                                break;
+                            }
+                            else {
+                                x = j - facteur * aux.getX();
+                                y = i - facteur * aux.getY();
+                                if (masque.ptr<uchar>(y)[x] > 126) {
+                                    resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                                    break;
+                                }
+                                else {
+                                    facteur++;
+                                    x = j + facteur * aux.getX();
+                                    y = i + facteur * aux.getY();
+                                }
+                            }
+                        }
+                        if (!(y >= 0 && y < tailleY && x >= 0 && x < tailleX)) {
+                            x = j - facteur * aux.getX();
+                            y = i - facteur * aux.getY();
                             if (masque.ptr<uchar>(y)[x] > 126)
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
                             else
                                 cout << "bad, ";
                         }
+
+                        /*if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                            if (masque.ptr<uchar>(y)[x] > 126)
+                                resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                            else { // dans le masque
+                                x = j - aux.getX();
+                                y = i - aux.getY();
+
+                                if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                                    if (masque.ptr<uchar>(y)[x] > 126)
+                                        resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                                    else {
+
+                                    }
+                                }
+                                else
+                                    cout << "bad2, ";
+
+                                //cout << "bad, ";
+                            }
+                        }
                         else
-                            cout << "bad, ";
+                            cout << "bad, ";*/
                     }
                     else
                         cout << "choix bizarre pour le pixel " << k << " : " << (int) result[k] << endl;
