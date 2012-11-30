@@ -34,6 +34,7 @@ void ImageCouleur::complete(int taillePatch, int tau) {
         }
         int* result = image->optimisationChampsMarkov(nombrePixelsMasque);
 
+        // On renconstitue l'image
         int x = 0, y = 0, k = 0;
         Offset aux;
         for (i = 0 ; i < tailleY ; i++) {
@@ -45,21 +46,16 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                         y = i + aux.getY();
 
                         if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
-                            if (masque.ptr<uchar>(y)[x] > 126) {
+                            if (masque.ptr<uchar>(y)[x] > 126)
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
-                            }
                             else
                                 cout << "bad, ";
-                                //resultat.ptr<Vec3b>(i)[j] = 0;
                         }
                         else
                             cout << "bad, ";
-                            //resultat.ptr<Vec3b>(i)[j] = 0;
                     }
-                    else {
-                        //resultat.ptr<Vec3b>(i)[j] = 0;
+                    else
                         cout << "choix bizarre pour le pixel " << k << " : " << (int) result[k] << endl;
-                    }
                     k++;
             }
         }

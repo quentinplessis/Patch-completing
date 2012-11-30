@@ -30,7 +30,6 @@ void Offset::affiche() const {
     cout << "(" << x << "," << y << ")";
 }
 
-
 void Offset::afficheTriplet() const {
     cout << "" << x << "\t" << y << "\t" << nombre << "" << endl;
 }

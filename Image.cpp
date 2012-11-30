@@ -1,13 +1,16 @@
 #include <iostream>
 #include <time.h>
 #include <algorithm>
+
 #include "Image.hpp"
-#include "Patch.hpp"
 #include "gco-v3.0/GCoptimization.h"
 #include "flann/flann.hpp"
 
 
 #define INFINI  10000000
+#define NOMBRE_TREES    4
+#define PROFONDEUR_MAX  25
+#define NN  20
 
 using namespace std;
 using namespace cv;
@@ -153,8 +156,6 @@ void Image::calculeOffsetsKDTrees(int taillePatch, int tau) {
     int nombreDonnees = 0, nombreDimensions = taillePatch*taillePatch;
     bool patchValide = true;
 
-    //int requeteX = 4, requeteY = 1;
-
     offsets.clear();
 
     clock_t beginTime = clock();
@@ -209,7 +210,6 @@ void Image::calculeOffsetsKDTrees(int taillePatch, int tau) {
                     for (k = 0 ; k < taillePatch ; k++) {
                         for (l = 0 ; l < taillePatch ; l++) {
                             data[pixelValide*nombreDimensions+k*taillePatch+l] = pixels.ptr<uchar>(i+k)[j+l];
-                            //if (i == requeteY && j == requeteX)
                             dataQuery[pixelValide*nombreDimensions+k*taillePatch+l] = pixels.ptr<uchar>(i+k)[j+l];
                         }
                     }
@@ -221,31 +221,35 @@ void Image::calculeOffsetsKDTrees(int taillePatch, int tau) {
         }
     }
 
-    int nn = 2; // nombre de nearest neighbor à rechercher
+    int nn = NN; // nombre de nearest neighbor à rechercher
     flann::Matrix<float> dataset(data, nombreDonnees, nombreDimensions);
     flann::Matrix<float> query(dataQuery, nombreDonnees, nombreDimensions);
-    flann::Matrix<int> indices(new int[query.rows*nn], query.rows, nn);
-    flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn);
-    // construct an randomized kd-tree index using 4 kd-trees
-    flann::Index<flann::L2<float> > index(dataset, flann::KDTreeIndexParams(4));
+    flann::Matrix<int> indices(new int[query.rows*nn], query.rows, nn); // sortie : indice du site trouvé pour chaque requête
+    flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn); // sortie : distances de chaque site trouvé par rapport à la requête
+
+    // construit 4 kd-trees
+    flann::Index<flann::L2<float> > index(dataset, flann::KDTreeIndexParams(NOMBRE_TREES));
     index.buildIndex();
-    // do a knn search, using 25 checks
-    index.knnSearch(query, indices, dists, nn, flann::SearchParams(25));
 
+    // fait la recherche
+    index.knnSearch(query, indices, dists, nn, flann::SearchParams(PROFONDEUR_MAX));
+
+    // sélection des offsets (pour chaque requête, les nearest neighbors sont trié par distance croissante (par rapport au site de référence)
+    int x, y, id;
+    long distCarre;
     for (i = 0 ; i < nombreDonnees ; i++) {
-        //cout << "Pour (" << posXPixelValide[i] << "," << posYPixelValide[i] << ") : ";
+        // on ajoute le premier offset de la liste triée qui vérifie les conditions de tau
         for (j = 0 ; j < nn ; j++) {
-            int id = indices.ptr()[i*nn+j];
+            id = indices.ptr()[i*nn+j];
 
-            int x = (posXPixelValide[id]-posXPixelValide[i]);
-            int y = (posYPixelValide[id]-posYPixelValide[i]);
+            x = (posXPixelValide[id]-posXPixelValide[i]);
+            y = (posYPixelValide[id]-posYPixelValide[i]);
 
-            long distCarre = x*x+y*y;
-            if (distCarre > tau*tau) { // mauvais
+            distCarre = x*x+y*y;
+            if (distCarre > tau*tau) {
                 ajouterOffset(x, y);
                 break;
             }
-
         }
     }
 
@@ -340,10 +344,8 @@ void Image::completeKolmogorov() {
                     y = i + aux.getY();
 
                     if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
-                        if (masque.ptr<uchar>(y)[x] > 126) {
+                        if (masque.ptr<uchar>(y)[x] > 126)
                             resultat.ptr<uchar>(i)[j] = pixels.ptr<uchar>(y)[x];
-                            //std::cout << result[k] << "," << aux.getX() << "," << aux.getY() << " ";
-                        }
                         else
                             resultat.ptr<uchar>(i)[j] = 0;
                     }
@@ -416,8 +418,8 @@ int* Image::optimisationChampsMarkov(int nombrePixels) {
 	int pixel = 0;
 	for (i = 0 ; i < tailleY ; i++) {
         for (j = 0 ; j < tailleX ; j++) {
-            if (masque.ptr<uchar>(i)[j] < 126) { //Si le pixel se situe dans la zone inconnue
-                for (k = offsets.begin() ; k != offsets.end() ; ++k) { //On parstd::cout tous les Offsets
+            if (masque.ptr<uchar>(i)[j] < 126) { // Si le pixel se situe dans la zone inconnue
+                for (k = offsets.begin() ; k != offsets.end() ; ++k) { //On parse tous les Offsets
                     //Coordonnées du pixel+offset
                     x = j + k->getX();
                     y = i + k->getY();
