@@ -10,7 +10,7 @@
 #define INFINI  10000000
 #define NOMBRE_TREES    4
 #define PROFONDEUR_MAX  25
-#define NN  20
+#define NN  25
 
 using namespace std;
 using namespace cv;
