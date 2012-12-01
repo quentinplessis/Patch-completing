@@ -36,6 +36,7 @@ void ImageCouleur::complete(int taillePatch, int tau) {
 
         // On renconstitue l'image
         int x = 0, y = 0, k = 0, facteur = 1;
+        bool directionPos = true, directionNeg = true;
         Offset aux;
         for (i = 0 ; i < tailleY ; i++) {
             for (j = 0 ; j < tailleX ; j++) {
@@ -43,39 +44,46 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                     if (result[k] >= 0 && result[k] < offsets.size()) {
                         aux = offsets.at(result[k]);
 
-                        //facteur = 1;
-                        x = j + aux.getX();
-                        y = i + aux.getY();
+                        facteur = 1;
+                        directionPos = true;
+                        directionNeg = true;
+                        /*x = j + aux.getX();
+                        y = i + aux.getY();*/
 
-                        /*while (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
-                            if (masque.ptr<uchar>(y)[x] > 126) {
-                                resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
-                                break;
+                        while (directionPos || directionNeg) {
+                            if (directionPos) {
+                                x = j + facteur * aux.getX();
+                                y = i + facteur * aux.getY();
+
+                                if (y >= 0 && y < tailleY && x >= 0) {
+                                    if (masque.ptr<uchar>(y)[x] > 126) {
+                                        resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                                        break;
+                                    }
+                                }
+                                else
+                                    directionPos = false;
                             }
-                            else {
+                            if (directionNeg) {
                                 x = j - facteur * aux.getX();
                                 y = i - facteur * aux.getY();
-                                if (masque.ptr<uchar>(y)[x] > 126) {
-                                    resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
-                                    break;
-                                }
-                                else {
-                                    facteur++;
-                                    x = j + facteur * aux.getX();
-                                    y = i + facteur * aux.getY();
-                                }
-                            }
-                        }
-                        if (!(y >= 0 && y < tailleY && x >= 0 && x < tailleX)) {
-                            x = j - facteur * aux.getX();
-                            y = i - facteur * aux.getY();
-                            if (masque.ptr<uchar>(y)[x] > 126)
-                                resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
-                            else
-                                cout << "bad, ";
-                        }*/
 
-                        if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
+                                if (y >= 0 && y < tailleY && x >= 0) {
+                                    if (masque.ptr<uchar>(y)[x] > 126) {
+                                        resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
+                                        break;
+                                    }
+                                }
+                                else
+                                    directionNeg = false;
+                            }
+                            facteur++;
+                        }
+
+                        if (!directionNeg && !directionPos)
+                            cout << "bad, ";
+
+                        /*if (y >= 0 && y < tailleY && x >= 0 && x < tailleX) {
                             if (masque.ptr<uchar>(y)[x] > 126)
                                 resultat.ptr<Vec3b>(i)[j] = pixels.ptr<Vec3b>(y)[x];
                             else { // dans le masque
@@ -93,7 +101,7 @@ void ImageCouleur::complete(int taillePatch, int tau) {
                             }
                         }
                         else
-                            cout << "bad, ";
+                            cout << "bad, ";*/
                     }
                     else
                         cout << "choix bizarre pour le pixel " << k << " : " << (int) result[k] << endl;

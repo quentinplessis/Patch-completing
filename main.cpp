@@ -67,22 +67,22 @@ void boucle() {
     ImageCouleur* im;
     string image;
 
-    int patchs[8] = {2, 4, 8, 10, 16, 20, 25, 32};
+    int patchs[8] = {2, 4, 8, 10, 16, 20, 24, 32};
     int taus[10] = {0, 4, 8, 10, 13, 17, 23, 27, 32, 50};
-    string images[1] = {"inputs/colonnes.png"};
-    string masques[1] = {"inputs/masquecols2.jpg"};
+    string images[11] = {"inputs/colonnes.png", "inputs/cat.jpg", "inputs/escargot.jpg", "inputs/escargot-trait.jpg", "inputs/gate_input.jpg", "inputs/house_input.jpg", "inputs/pano.jpg", "inputs/panorama300.jpg", "inputs/plage.jpg", "inputs/pumpkin_input.jpg", "inputs/soldier_input.jpg"};
+    string masques[11] = {"inputs/masquecols2.jpg", "inputs/catM.jpg", "inputs/escargotM.jpg", "inputs/escargotM.jpg", "inputs/gate_inputM.jpg", "inputs/house_inputM.jpg", "inputs/panomasque.jpg", "inputs/panoramaM.jpg", "inputs/plageM.jpg", "inputs/pumpkin_inputM.jpg", "inputs/soldier_inputM.jpg"};
 
-    for (int i = 0 ; i < 1 ; i++) {
-        for (int j = 0 ; j < 8 ; j++) {
-            for (int k = 0 ; k < 10 ; k++) {
+    for (int i = 0 ; i < 11 ; i++) {
+        for (int j = 1; j < 8 ; j++) {
+            for (int k = 1 ; k < 10 ; k++) {
                 im = new ImageCouleur(images[i], masques[i]);
                 im->complete(patchs[j], taus[k]);
                 pos = images[i].find_last_of("/\\");
                 image = images[i].substr(pos);
+                ostringstream oss;
                 oss << "rendus/\\" << image << "-p" << patchs[j] << "-t" << taus[k] << ".jpg";
                 im->sauvegarder(oss.str());
                 delete im;
-                oss.clear();
             }
         }
     }
