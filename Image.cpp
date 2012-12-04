@@ -151,6 +151,11 @@ void Image::calculeOffsets(int taillePatch, int tau) {
     delete pp2;
 }
 
+/**
+Pour chaque pixel de l'image, détermine le vecteur tel que le patch de pixels dont le coin en haut à gauche est le pixel actuel et de taille taillePatch
+ressemble le plus à son translaté par le vecteur en question. Le calcul est effectué à l'aide de kd-trees.
+Les vecteurs de norme inférieure ou égale à tau ne sont pas retenus.
+*/
 void Image::calculeOffsetsKDTrees(int taillePatch, int tau) {
     int i, j, k, l;
     int nombreDonnees = 0, nombreDimensions = taillePatch*taillePatch;
