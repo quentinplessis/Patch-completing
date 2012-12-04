@@ -30,8 +30,8 @@ void Rendu3D::changeTaille(GLsizei w, GLsizei h) {
 void Rendu3D::rendu() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
-    glRotatef(70,1,0,0); // 70
-    glRotatef(-15, 0, 0, 1); // -10
+    glRotatef(180,1,0,0); // 70
+    glRotatef(0, 0, 0, 1); // -15
     repere();
 
     vector<Offset> offsets = image->getOffsets();
@@ -42,12 +42,15 @@ void Rendu3D::rendu() {
             nMax = i->getN();
     }
 
-    glBegin(GL_LINES);
+    glPointSize(3.0);
+    glBegin(GL_POINTS);
+    //glBegin(GL_LINES);
+
     for (i = offsets.begin() ; i != offsets.end() ; ++i) {
         float proportion = ((float) i->getN())/nMax;
         glColor3f(proportion,0,1-proportion);
         glVertex3f(i->getX(), i->getY(), 0);
-        glVertex3f(i->getX(), i->getY(), -(i->getN()));
+        //glVertex3f(i->getX(), i->getY(), -(i->getN()));
     }
     glEnd();
 

@@ -72,7 +72,7 @@ void boucle() {
     string images[11] = {"inputs/colonnes.png", "inputs/cat.jpg", "inputs/escargot.jpg", "inputs/escargot-trait.jpg", "inputs/gate_input.jpg", "inputs/house_input.jpg", "inputs/pano.jpg", "inputs/panorama300.jpg", "inputs/plage.jpg", "inputs/pumpkin_input.jpg", "inputs/soldier_input.jpg"};
     string masques[11] = {"inputs/masquecols2.jpg", "inputs/catM.jpg", "inputs/escargotM.jpg", "inputs/escargotM.jpg", "inputs/gate_inputM.jpg", "inputs/house_inputM.jpg", "inputs/panomasque.jpg", "inputs/panoramaM.jpg", "inputs/plageM.jpg", "inputs/pumpkin_inputM.jpg", "inputs/soldier_inputM.jpg"};
 
-    for (int i = 3 ; i < 11 ; i++) {
+    for (int i = 5 ; i < 10 ; i++) {
         for (int j = 0 ; j < 8 ; j++) {
             for (int k = 0 ; k < 9 ; k++) {
                 im = new ImageCouleur(images[i], masques[i]);
