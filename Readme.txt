@@ -1,10 +1,11 @@
-						Complétion d'images par patchs - Readme
+		Complétion d'images par patchs - Readme
 
 //Sous Windows 7 et Windows Vista
 
 Les dossiers rendus et inputs doivent être dans le même dossier que l'exécutable.
 Les dll suivantes doivent être avec l'exécutable : libopencv_core230.dll ; libopencv_highgui230.dll ; glut32.dll.
-Ces dll ainsi que l'exécutable sont dans le dossier bin.
+Ces fichiers se trouvent à la racine du projet.
+
 
 Exécution de l'application :
 
@@ -13,7 +14,10 @@ Exécution de l'application :
 *avec un argument quelconque : patch-completing.exe x
 	Applique l'algorithme de reconstruction pour certaines images du dossier inputs pour différentes valeurs de la taille du patch et de tau.
 	Les résultats sont stockés dans le dossier rendus.
+
 *avec quatre arguments : patch-completing.exe entree masque patch tau
 	Applique l'algorithme de reconstruction pour l'image entree avec le masque masque, en prenant patch pour taille de patch et tau pour valeur de tau.
-	Les résultats sotn stockés dans le dossier rendus.
+	Les résultats sont stockés dans le dossier rendus.
+
+Par exemple : patch-completing.exe inputs/colonnes.png inputs/masquecols2.jpg 8 3
 	
